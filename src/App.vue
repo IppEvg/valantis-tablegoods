@@ -2,9 +2,9 @@
   <v-app>
     
     <v-main>
-  <TableGoods></TableGoods>
+      <TableGoods></TableGoods>
     </v-main>
-    <v-footer fixed  class="footer">
+    <v-footer   class="bg-broun footer">
       <div class="copyright">
         &copy; 2024 Ippolitov 
       </div>
@@ -35,6 +35,16 @@ export default {
 </script>
 
 <style lang="scss">
+
+.v-sheet{
+  display: flex;
+  .links{
+    p{
+    margin-bottom: 5px;
+  }
+}
+}
+
 .footer {
   background-color: blue;
   display: flex;
