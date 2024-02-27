@@ -7,8 +7,8 @@
             label="Search" 
             v-model="input" 
           />
-        <v-btn>
-          <img src="../assets/icons8-поиск.svg" class="filterForm_icon" type="submit" alt="find">
+        <v-btn type="submit">
+          <img src="../assets/icons8-поиск.svg" class="filterForm_icon"  alt="find">
         </v-btn>
       </div>
     </form>
@@ -90,8 +90,8 @@ import md5 from 'js-md5'
         this.listId=goodsId
       },  
       getterGoodsFromApi: function(data){
-        let dataWithoutDublicate = [...data.result.filter((item, index, self) => index == self.findIndex((e) => e.id === item.id))]
-      this.listGoods=[...dataWithoutDublicate]
+        // let dataWithoutDublicate = [...data.result.filter((item, index, self) => index == self.findIndex((e) => e.id === item.id))]
+      this.listGoods=[...data.result.filter((item, index, self) => index == self.findIndex((e) => e.id === item.id))]
       this.loading=false
       },
       handlerGetter: function(action,params,func){
@@ -120,19 +120,19 @@ import md5 from 'js-md5'
       getListBrands:function(data){
         this.listBrands = [...new Set(data.result)]
       },
-      getFilter(e){
+      getFilter(input){
         this.loading=true
-        if(e.match(/\d+/i)){
-          this.handlerGetter("filter", {"price": +e}, this.getterIdFromApi)
+        if(input.match(/\d+/i)){
+          this.handlerGetter("filter", {"price": +input}, this.getterIdFromApi)
         }
-        if(e.match(/\D+/i)){
-          this.handlerGetter("filter", {"product": e}, this.getterIdFromApi)
+        if(this.listBrands.find(item=>item==input)){
+          this.handlerGetter("filter", {"brand": input}, this.getterIdFromApi)
+        }else if(input.match(/\D+/i)){
+          this.handlerGetter("filter", {"product": input}, this.getterIdFromApi)
         }
-        if(e===""){
+        if(input===""){
           return this.handlePaginationClick
         }
-        // if()
-        // this.handlerGetter("filter", "params": {"price":}}, this.getterGoodsFromApi)
       },
     },
     computed:{
@@ -146,9 +146,7 @@ import md5 from 'js-md5'
     mounted (){
 
   this.handlerGetter("get_ids",{},this.getterIdFromApi)
-
-    
-    // this.handlerGetter("get_fields", {"field":"brand"}, this.getListBrands)
+  this.handlerGetter("get_fields", {"field":"brand"}, this.getListBrands) 
    }
   }
   
