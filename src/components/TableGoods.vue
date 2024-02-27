@@ -1,27 +1,57 @@
 <template>
-<div>
-  <v-progress-circular 
-  v-if="loading" 
-  model-value="20" 
-  :size="57" 
-  :width="10" 
-  color="primary" 
-  indeterminate>
-  </v-progress-circular>
   <div>
-    <h1> Список продуктов</h1>
-    <v-list-item>
+    <h1 class="titleList"> Список продуктов</h1>
+    <form  class="filterForm" @submit.prevent="getFilter(input)">
+      <div class="filterForm_block" >
+        <v-text-field
+            label="Search" 
+            v-model="input" 
+          />
+        <v-btn>
+          <img src="../assets/icons8-поиск.svg" class="filterForm_icon" type="submit" alt="find">
+        </v-btn>
+      </div>
+    </form>
+    <v-progress-circular 
+      v-if="loading" 
+      model-value="20" 
+      :size="57" 
+      :width="10" 
+      color="primary" 
+      indeterminate>
+    </v-progress-circular>
+    <v-list-item v-else >
+      <v-card class="head_table">
+        <v-card-subtitle>
+          Id
+        </v-card-subtitle>
+        <v-card-title>
+          Название
+        </v-card-title>
+        <v-card-subtitle >
+          Бренд
+        </v-card-subtitle> 
+        <v-card-text>
+          Цена
+        </v-card-text>
+      </v-card>
       <v-card
     class="mx-auto my-8"
     max-width="1200"
     elevation="16"
     v-for="item of listGoods" :key="item.id"
       >
+        <v-card-subtitle>
+          {{item.id}}
+        </v-card-subtitle>
         <v-card-title>
           {{item.product}}
         </v-card-title>
-        <v-card-subtitle>
+        <v-card-subtitle v-if="item.brand">
           {{item.brand}}
+        </v-card-subtitle> 
+        <v-card-subtitle v-else>
+               ...
         </v-card-subtitle>
         <v-card-text>
           {{item.price}}
@@ -29,10 +59,9 @@
       </v-card>
     </v-list-item>
     <div class="pagination">
-      <v-pagination :length="getPages"  ></v-pagination>
+      <v-pagination :length="getPages" v-model="page" > </v-pagination>
     </div>
   </div>
-</div>
 </template>
 
 <script>
@@ -43,9 +72,11 @@ import md5 from 'js-md5'
       return{
         password:'Valantis',
         listId:[],
+        listBrands:[],
         listGoods:[],
         page:1,
-        loading:false
+        loading:false,
+        input:""
         
       }
     },
@@ -54,15 +85,13 @@ import md5 from 'js-md5'
         return new Date().toISOString().slice(0,10).replace(/-/g, '');
       },
       getterIdFromApi:function(data){
+        
         let goodsId = [...new Set(data.result)]//избавляемся от дублей сразу, если они есть 
         this.listId=goodsId
-        // let periodOfPage = goodsId
-      console.log(goodsId.slice(0,50));
-        this.handlerGetter("get_items", { "ids": goodsId.slice(0,50) }, this.getterGoodsFromApi)
       },  
       getterGoodsFromApi: function(data){
         let dataWithoutDublicate = [...data.result.filter((item, index, self) => index == self.findIndex((e) => e.id === item.id))]
-      this.listGoods=[...this.listGoods,...dataWithoutDublicate]
+      this.listGoods=[...dataWithoutDublicate]
       this.loading=false
       },
       handlerGetter: function(action,params,func){
@@ -88,26 +117,88 @@ import md5 from 'js-md5'
           })
           .then((data)=>func(data))
       },
+      getListBrands:function(data){
+        this.listBrands = [...new Set(data.result)]
+      },
+      getFilter(e){
+        this.loading=true
+        if(e.match(/\d+/i)){
+          this.handlerGetter("filter", {"price": +e}, this.getterIdFromApi)
+        }
+        if(e.match(/\D+/i)){
+          this.handlerGetter("filter", {"product": e}, this.getterIdFromApi)
+        }
+        if(e===""){
+          return this.handlePaginationClick
+        }
+        // if()
+        // this.handlerGetter("filter", "params": {"price":}}, this.getterGoodsFromApi)
+      },
     },
     computed:{
       getPages: function(){
       return parseInt(this.listId.length/50)
+      },
+      handlePaginationClick: function(){
+      return this.handlerGetter("get_items", { "ids": this.listId.slice((this.page-1)*50,this.page*50) }, this.getterGoodsFromApi)
       }
     },
     mounted (){
-     
-    this.handlerGetter("get_ids",{},this.getterIdFromApi)
+
+  this.handlerGetter("get_ids",{},this.getterIdFromApi)
+
     
-      // for (let i = 0 ; i <Math.ceil(this.listId.length/100);i++){
-      //   console.log(133333);
-      //     this.handlerGetter("get_items",{"ids": this.listId.filter(e=>e.page==i)},this.getterGoodsFromApi)
-      // }
+    // this.handlerGetter("get_fields", {"field":"brand"}, this.getListBrands)
    }
   }
   
 </script>
 
 <style scoped lang="scss">
+.titleList{
+  margin:  15px auto 5px;
+  text-align: center;
+}
+.theme--light.v-btn.v-btn--has-bg{
+  background-color:none ;
+}
+.v-btn:not(.v-btn--round).v-size--default{
+  padding: 2px;
+  width: auto;
+  height: 100%;
+}
+.theme--light.v-card > .v-card__text{
+  color: black;
+}
+.filterForm{
+  display: flex;
+  justify-content: end;
+  align-items: center; 
+}
+.filterForm_block[data-v-5b586258]{
+  display: flex;
+  padding: 5px;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  .v-text-field__details{
+  display: none;
+}
+  .filterForm_block{
+    display: flex;
+    justify-content: end;
+  border: 1px solid black;
+  padding: 5px;
+  }
+
+}
+.v-text-field__details{
+  display: none!important;
+}
+.filterForm_icon{
+  height: 30px;
+}
+
 .load{
   display: block;
   flex-direction: column;
@@ -119,18 +210,18 @@ import md5 from 'js-md5'
   margin: 40px auto;
 }
 .v-list-item{
-  display: block;
   min-height: 35px;
+   display: block;
 }
 .v-card{
+  width: 100%;
   display: grid;
-    grid-template-columns: 1.5fr 1fr 1fr;
-    grid-template-rows: 35px;
-    width: 100%;
-    gap:1px;
-    
+  grid-template-columns: 1.3fr 2fr 1fr 1fr;
+  grid-template-rows: 35px;
+  gap:1px;
 }
 .v-application, .my-8{
+
   line-height: normal;
   margin-top: 3px!important;
   margin-bottom: 3px!important;
@@ -140,6 +231,11 @@ import md5 from 'js-md5'
 }
 .container{
 padding: 0;
+}
+
+.head_table{
+  background-color:lightgrey ;
+  width: 100%;
 }
 .v-card__title, .v-card__subtitle, .v-card__text{
   font-size: small;
@@ -152,10 +248,12 @@ padding: 0;
 }
 
 .v-card__text{
-  width: fit-content;
+  width: 100%;
 }
 .pagination{
   width: 50%;
   margin: 20px auto;
 }
+
+
 </style>
