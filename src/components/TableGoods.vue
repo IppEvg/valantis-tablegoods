@@ -58,8 +58,8 @@
         </v-card-text>
       </v-card>
     </v-list-item>
-    <div class="pagination">
-      <v-pagination :length="getPages" v-model="page" > </v-pagination>
+    <div class="pagination" >
+      <v-pagination :length="getPages" v-model="page"  @input="handlePageChange"> </v-pagination>
     </div>
   </div>
 </template>
@@ -85,18 +85,22 @@ import md5 from 'js-md5'
         return new Date().toISOString().slice(0,10).replace(/-/g, '');
       },
       getterIdFromApi:function(data){
-        
-        let goodsId = [...new Set(data.result)]//избавляемся от дублей сразу, если они есть 
-        this.listId=goodsId
+        console.log(data.result);
+        let newList  = [...new Set(data.result)]//избавляемся от дублей сразу, если они есть 
+        this.listId= newList
       },  
-      getterGoodsFromApi: function(data){
-        // let dataWithoutDublicate = [...data.result.filter((item, index, self) => index == self.findIndex((e) => e.id === item.id))]
-      this.listGoods=[...data.result.filter((item, index, self) => index == self.findIndex((e) => e.id === item.id))]
+      getListBrands:function(data){
+        this.listBrands = [...new Set(data.result)]
+      },
+      getterGoodsFromApi(data){
+      let normalItems =data.result.filter((item, index, self) => index === self.findIndex((e) => e.id === item.id))
+      this.listGoods=[...normalItems]
       this.loading=false
       },
-      handlerGetter: function(action,params,func){
+      handlerGetter: async function(action,params,func){
         this.loading=true
-        fetch('http://api.valantis.store:40000/',{
+        try {
+          let response = await fetch('http://api.valantis.store:40000/',{
         method:'POST',
         headers:{
           'X-Auth':`${md5(`${this.password}_${this.getTimestamp()}`)}`,
@@ -107,46 +111,46 @@ import md5 from 'js-md5'
           'params': params
           })
       })
-          .then(response => {
             if (response.ok) {
-              return response.json()
+              let data= await response.json()
+              func(data)
             }else{
-              response.json()
-              throw new Error('Ошибка при получении данных');
+              console.log('Ошибка при получении данных')
+              this.handlerGetter("get_items", { "ids": this.listId.slice((this.page-1)*50,this.page*50) }, this.getterGoodsFromApi)
             }
-          })
-          .then((data)=>func(data))
+        } catch (error) {
+          console.log(error);
+        }
       },
-      getListBrands:function(data){
-        this.listBrands = [...new Set(data.result)]
-      },
+      
       getFilter(input){
         this.loading=true
         if(input.match(/\d+/i)){
           this.handlerGetter("filter", {"price": +input}, this.getterIdFromApi)
-        }
-        if(this.listBrands.find(item=>item==input)){
+        }else if (this.listBrands.find(item=>item==input)){
           this.handlerGetter("filter", {"brand": input}, this.getterIdFromApi)
         }else if(input.match(/\D+/i)){
           this.handlerGetter("filter", {"product": input}, this.getterIdFromApi)
         }
         if(input===""){
-          return this.handlePaginationClick
+          this.handlerGetter("get_ids",{},this.getterIdFromApi)
         }
+        return this.handlerGetter("get_items", { "ids": this.listId.slice((this.page-1)*50,this.page*50) }, this.getterGoodsFromApi)
       },
+      handlePageChange(){
+        this.handlerGetter("get_items", { "ids": this.listId.slice((this.page-1)*50,this.page*50) }, this.getterGoodsFromApi)
+      }
     },
     computed:{
       getPages: function(){
-      return parseInt(this.listId.length/50)
-      },
-      handlePaginationClick: function(){
-      return this.handlerGetter("get_items", { "ids": this.listId.slice((this.page-1)*50,this.page*50) }, this.getterGoodsFromApi)
+        return parseInt(this.listId.length/50)
       }
     },
-    mounted (){
+   async mounted (){
+     await this.handlerGetter("get_ids",{},this.getterIdFromApi)
+     await this.handlerGetter("get_fields", {"field":"brand"}, this.getListBrands)
+      this.handlerGetter("get_items", { "ids": this.listId.slice((this.page-1)*50,this.page*50) }, this.getterGoodsFromApi)
 
-  this.handlerGetter("get_ids",{},this.getterIdFromApi)
-  this.handlerGetter("get_fields", {"field":"brand"}, this.getListBrands) 
    }
   }
   
